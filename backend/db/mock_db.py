@@ -6,8 +6,8 @@ from db.redis_client import get_redis_sync
 
 CATEGORIES = ['Electronics', 'Apparel', 'Home', 'Sports', 'Beauty', 'Toys']
 NAMES = [
-  'Pro Wireless Headphones', 'Smart 4K Monitor', 'Ergonomic Keyboard',
-  'Running Shoes Elite', 'Yoga Mat Premium', 'Coffee Maker Deluxe',
+  'Surface Pro AI Edition', 'StreamBuds Pro ANC', 'Creator Laptop X1',
+  'Artisan Desk Collection', 'Yoga Mat Premium', 'Coffee Maker Deluxe',
   'Gaming Chair X500', 'LED Desk Lamp', 'Bluetooth Speaker',
   'Mechanical Watch', 'Leather Backpack', 'Noise Cancelling Buds',
   'Ultra-Wide Webcam', 'Standing Desk', 'Portable Charger 20K',
@@ -18,9 +18,10 @@ NAMES = [
 def generate_mock_products():
     client = get_redis_sync()
     
+    hardcoded_prices = [106500, 14750, 151600, 28700]
     for i in range(20):
         prod_id = f"prod-{i + 1}"
-        base_price = round(19.99 + i * 12.5 + random.random() * 30, 2)
+        base_price = hardcoded_prices[i] if i < len(hardcoded_prices) else round((19.99 + i * 12.5 + random.random() * 30) * 82)
         
         product_data = {
             "id": prod_id,
@@ -38,7 +39,7 @@ def generate_mock_products():
                 "Warranty": "2 years",
                 "Origin": "Imported"
             }),
-            "image": ""
+            "image": ['/images/surface_pro.png', '/images/stream_buds.png', '/images/creator_laptop.png', '/images/artisan_desk.png'][i] if i < 4 else ""
         }
         
         client.hset(f"product:{prod_id}", mapping=product_data)

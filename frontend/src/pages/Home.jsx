@@ -10,10 +10,10 @@ import { fetchProducts, fetchRecommendations } from '../services/api'
 
 // ─── Static product data ──────────────────────────────────────────────────────
 const PRODUCTS = [
-  { id: 'prod-1',  name: 'Surface Pro AI Edition', price: 1299.99, cat: 'Computing',  tag: 'BESTSELLER',  icon: Laptop,     demand: 91 },
-  { id: 'prod-2',  name: 'StreamBuds Pro ANC',     price: 179.99,  cat: 'Audio',       tag: 'DEMAND SPIKE', icon: Headphones, demand: 87 },
-  { id: 'prod-3',  name: 'Creator Laptop X1',      price: 1849.00, cat: 'Computing',  tag: 'TRENDING',    icon: Monitor,    demand: 78 },
-  { id: 'prod-4',  name: 'Artisan Desk Collection', price: 349.99, cat: 'Lifestyle',   tag: 'NEW',         icon: Coffee,     demand: 55 },
+  { id: 'prod-1',  name: 'Surface Pro AI Edition', price: 106500, cat: 'Computing',  tag: 'BESTSELLER',  icon: Laptop,     image: '/images/surface_pro.png', demand: 91 },
+  { id: 'prod-2',  name: 'StreamBuds Pro ANC',     price: 14750,  cat: 'Audio',       tag: 'DEMAND SPIKE', icon: Headphones, image: '/images/stream_buds.png', demand: 87 },
+  { id: 'prod-3',  name: 'Creator Laptop X1',      price: 151600, cat: 'Computing',  tag: 'TRENDING',    icon: Monitor,    image: '/images/creator_laptop.png', demand: 78 },
+  { id: 'prod-4',  name: 'Artisan Desk Collection', price: 28700, cat: 'Lifestyle',   tag: 'NEW',         icon: Coffee,     image: '/images/artisan_desk.png', demand: 55 },
 ]
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -58,12 +58,17 @@ function LuxProductCard({ product, index }) {
           )}
 
           {/* Product image area */}
-          <div className="h-52 flex items-center justify-center relative"
+          <div className="h-52 flex items-center justify-center relative overflow-hidden"
             style={{ background: 'linear-gradient(145deg, #FAF6F2 0%, #EDE3D8 100%)' }}>
             {/* Ambient amber light */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-16 rounded-full opacity-30 blur-2xl"
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-16 rounded-full opacity-30 blur-2xl z-0"
               style={{ background: 'radial-gradient(ellipse, #C97A2A 0%, transparent 70%)' }} />
-            <Icon size={64} className="text-[#8B7355] group-hover:text-[#6B5335] transition-colors duration-300 relative z-10" />
+            
+            {product.image ? (
+              <img src={product.image} alt={product.name} className="w-full h-full object-cover relative z-10 opacity-95 group-hover:scale-[1.03] transition-transform duration-500" />
+            ) : (
+              <Icon size={64} className="text-[#8B7355] group-hover:text-[#6B5335] transition-colors duration-300 relative z-10" />
+            )}
           </div>
 
           {/* Info */}
@@ -92,7 +97,7 @@ function LuxProductCard({ product, index }) {
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <span className="text-xl font-black font-mono text-[#1A1A1A]">${product.price.toFixed(2)}</span>
+              <span className="text-xl font-black font-mono text-[#1A1A1A]">₹{product.price.toLocaleString('en-IN')}</span>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
                 style={{ background: '#0D0D0D', border: '1px solid rgba(22,163,74,0.25)' }}>
                 <motion.span
@@ -273,7 +278,7 @@ export default function Home() {
                         <h4 className="font-bold text-sm line-clamp-1 transition-colors" style={{ color: '#2A2018' }}>{p.name}</h4>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-lg font-black font-mono" style={{ color: '#1A1A1A' }}>${p.price.toFixed(2)}</span>
+                        <span className="text-lg font-black font-mono" style={{ color: '#1A1A1A' }}>₹{p.price.toLocaleString('en-IN')}</span>
                         <span className="text-xs font-bold rounded-xl px-3 py-1.5 transition-all" style={{ color: '#0A7A3E', border: '1px solid rgba(22,163,74,0.3)', background: 'rgba(22,163,74,0.08)' }}>View</span>
                       </div>
                     </div>

@@ -144,7 +144,7 @@ export default function ProductCard({ product }) {
             className={`rounded-lg transition-all duration-300 ${pulsing ? 'price-pulse' : ''}`}
           >
             <span className="text-xl font-black text-[#2D6A2D] font-mono tracking-tight">
-              ${typeof price === 'number' ? price.toFixed(2) : price}
+              ₹{typeof price === 'number' ? Math.floor(price).toLocaleString('en-IN') : price}
             </span>
             {priceDirection && (
               <span className={`ml-1.5 text-[10px] font-bold ${priceDirection === 'up' ? 'text-warn-red' : 'text-[#2D6A2D]'}`}>

@@ -65,7 +65,7 @@ export default function Cart() {
                     <p className="font-bold text-sm text-[#1A2E1A] hover:text-[#2D6A2D] transition-colors line-clamp-1">{item.name}</p>
                   </Link>
                   <p className="text-xs font-semibold uppercase tracking-wider text-[#5A7A5A]">{item.category}</p>
-                  <p className="text-[#2D6A2D] font-bold font-mono">${(item.price * item.qty).toFixed(2)}</p>
+                  <p className="text-[#2D6A2D] font-bold font-mono">₹{Math.floor(item.price * item.qty).toLocaleString('en-IN')}</p>
                 </div>
 
                 {/* Qty controls */}
@@ -106,23 +106,23 @@ export default function Cart() {
           <div className="space-y-3.5 text-sm">
             <div className="flex justify-between text-[#5A7A5A] font-medium">
               <span>Subtotal ({totalItems} items)</span>
-              <span className="text-[#1A2E1A] font-mono font-bold">${totalPrice.toFixed(2)}</span>
+              <span className="text-[#1A2E1A] font-mono font-bold">₹{Math.floor(totalPrice).toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between text-[#5A7A5A] font-medium">
               <span>Shipping</span>
               <span className={shipping === 0 ? 'text-[#2D6A2D] font-bold' : 'text-[#1A2E1A] font-mono font-bold'}>
-                {shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}
+                {shipping === 0 ? 'FREE' : `₹${Math.floor(shipping).toLocaleString('en-IN')}`}
               </span>
             </div>
             <div className="flex justify-between text-[#5A7A5A] font-medium">
               <span>Tax (8%)</span>
-              <span className="text-[#1A2E1A] font-mono font-bold">${tax.toFixed(2)}</span>
+              <span className="text-[#1A2E1A] font-mono font-bold">₹{Math.floor(tax).toLocaleString('en-IN')}</span>
             </div>
           </div>
 
           <div className="border-t border-[#C8D9C8] pt-4 flex justify-between font-black text-lg text-[#1A2E1A]">
             <span>Total</span>
-            <span className="text-[#2D6A2D] font-mono text-xl">${total.toFixed(2)}</span>
+            <span className="text-[#2D6A2D] font-mono text-xl">₹{Math.floor(total).toLocaleString('en-IN')}</span>
           </div>
 
           {shipping === 0 && (

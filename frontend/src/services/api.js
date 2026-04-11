@@ -21,8 +21,8 @@ api.interceptors.response.use(
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 const CATEGORIES = ['Electronics', 'Apparel', 'Home', 'Sports', 'Beauty', 'Toys']
 const NAMES = [
-  'Pro Wireless Headphones', 'Smart 4K Monitor', 'Ergonomic Keyboard',
-  'Running Shoes Elite', 'Yoga Mat Premium', 'Coffee Maker Deluxe',
+  'Surface Pro AI Edition', 'StreamBuds Pro ANC', 'Creator Laptop X1',
+  'Artisan Desk Collection', 'Yoga Mat Premium', 'Coffee Maker Deluxe',
   'Gaming Chair X500', 'LED Desk Lamp', 'Bluetooth Speaker',
   'Mechanical Watch', 'Leather Backpack', 'Noise Cancelling Buds',
   'Ultra-Wide Webcam', 'Standing Desk', 'Portable Charger 20K',
@@ -30,13 +30,19 @@ const NAMES = [
   'Smart Water Bottle', 'Resistance Bands Kit',
 ]
 
+const IMAGES = [
+  '/images/surface_pro.png', '/images/stream_buds.png', 
+  '/images/creator_laptop.png', '/images/artisan_desk.png'
+]
+const HARDCODED_PRICES = [106500, 14750, 151600, 28700]
+
 function mockProduct(i) {
   const velocity = Math.floor(20 + Math.random() * 80)
   return {
     id: `prod-${i + 1}`,
     name: NAMES[i % NAMES.length],
     category: CATEGORIES[i % CATEGORIES.length],
-    price: parseFloat((19.99 + i * 12.5 + Math.random() * 30).toFixed(2)),
+    price: i < 4 ? HARDCODED_PRICES[i] : Math.floor((19.99 + i * 12.5 + Math.random() * 30) * 82),
     rating: parseFloat((3.5 + Math.random() * 1.5).toFixed(1)),
     reviewCount: Math.floor(50 + Math.random() * 900),
     demandVelocity: velocity,
@@ -47,7 +53,7 @@ function mockProduct(i) {
       'Warranty': '2 years',
       'Origin': 'Imported',
     },
-    image: null,
+    image: i < 4 ? IMAGES[i] : null,
   }
 }
 

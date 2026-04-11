@@ -18,6 +18,7 @@ export default function ProductDetails() {
   const [added, setAdded]     = useState(false)
 
   useEffect(() => {
+    window.scrollTo(0, 0)
     setLoading(true)
     fetchProductById(id)
       .then(p => {
@@ -127,14 +128,14 @@ export default function ProductDetails() {
               <div className="flex flex-col gap-1">
                  <div className="flex items-baseline gap-2">
                    <span className="text-[#5A7A5A] font-medium">List Price:</span>
-                   <span className="text-[#5A7A5A] line-through">${listPrice.toFixed(2)}</span>
+                   <span className="text-[#5A7A5A] line-through">₹{Math.floor(listPrice || 0).toLocaleString('en-IN')}</span>
                  </div>
                  <div className="flex flex-wrap items-baseline gap-2">
                    <span className="text-[#5A7A5A] font-medium">Our Price:</span>
-                   <span className="text-3xl font-black text-[#2D6A2D] font-mono">${price?.toFixed(2)}</span>
+                   <span className="text-3xl font-black text-[#2D6A2D] font-mono">₹{Math.floor(price || 0).toLocaleString('en-IN')}</span>
                  </div>
                  <div className="text-[#5A7A5A] text-xs font-semibold">
-                   (${discount.toFixed(2)} off)
+                   (₹{Math.floor(discount || 0).toLocaleString('en-IN')} off)
                  </div>
               </div>
 
@@ -254,10 +255,10 @@ export default function ProductDetails() {
              <h3 className="text-xl font-bold mb-5 text-[#1A2E1A]">Related Products</h3>
              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-4 mb-10">
                 {[
-                  {n: 'Surface Pro AI', p: 18.00},
-                  {n: 'Pro Wireless ANC', p: 18.00},
-                  {n: 'Studio Laptop X1', p: 15.00},
-                  {n: 'Studio Monitor X', p: 13.00}
+                  {n: 'Surface Pro AI', p: 14760},
+                  {n: 'Pro Wireless ANC', p: 14760},
+                  {n: 'Studio Laptop X1', p: 12300},
+                  {n: 'Studio Monitor X', p: 10660}
                 ].map((item, i) => (
                   <div key={i} className="flex flex-col gap-1.5 relative group cursor-pointer">
                     <div className="aspect-square bg-[#E4EDE4] rounded-xl border border-[#C8D9C8] flex items-center justify-center p-2 mb-1 group-hover:border-[#5A7A5A]/50 transition-colors">
@@ -265,7 +266,7 @@ export default function ProductDetails() {
                     </div>
                     <p className="text-[#5A7A5A] font-semibold text-xs leading-tight line-clamp-2 group-hover:text-[#1A2E1A]">{item.n}</p>
                     <div className="flex items-center text-[#2D6A2D]"><Star size={10} className="fill-[#2D6A2D]" /><Star size={10} className="fill-[#2D6A2D]" /><Star size={10} className="fill-[#2D6A2D]" /><span className="text-[#5A7A5A] ml-1.5 font-bold text-[10px]">4</span></div>
-                    <p className="text-[#2D6A2D] font-black text-sm">${item.p.toFixed(2)}</p>
+                    <p className="text-[#2D6A2D] font-black text-sm">₹{item.p.toLocaleString('en-IN')}</p>
                   </div>
                 ))}
              </div>
