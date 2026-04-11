@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --navy-950: #0D0D2B;
+    --navy-900: #1A1A40;
+    --navy-800: #1E1E50;
+    --accent-green: #00FFAB;
+    --accent-glow: #00FFD1;
+    --warn-amber: #FFB800;
+    --warn-red: #FF4545;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #F8FAF7;
+    color: #1A1A1A;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track { background: #E8E0D4; }
+  ::-webkit-scrollbar-thumb {
+    background: #C5B8A8;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: #0ABF60; }
+
+  ::selection {
+    background: rgba(10, 191, 96, 0.2);
+    color: #0A1A0F;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-navy-950 bg-accent-green hover:bg-accent-glow active:scale-95 transition-all duration-150 shadow-lg shadow-accent-green/20 text-sm;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-accent-green border border-accent-green/40 hover:border-accent-green hover:bg-accent-green/10 active:scale-95 transition-all duration-150 text-sm;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-150 text-sm;
+  }
+
+  .card {
+    @apply bg-navy-900 border border-white/5 rounded-2xl p-6 shadow-xl;
+  }
+
+  .card-hover {
+    @apply card hover:border-accent-green/30 hover:shadow-accent-green/10 transition-all duration-300;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+
+  .badge-green {
+    @apply badge bg-accent-green/15 text-accent-green border border-accent-green/30;
+  }
+
+  .badge-amber {
+    @apply badge bg-warn-amber/15 text-warn-amber border border-warn-amber/30;
+  }
+
+  .badge-red {
+    @apply badge bg-warn-red/15 text-warn-red border border-warn-red/30;
+  }
+
+  .glow-text {
+    text-shadow: 0 0 20px rgba(0, 255, 171, 0.5);
+  }
+
+  .price-pulse {
+    animation: pricePulse 1.2s ease-in-out 2;
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, #E8E0D4 25%, #F0EAE0 50%, #E8E0D4 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0,0,0,0.07);
+  }
+
+  .stat-tile {
+    @apply card flex flex-col gap-2;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, #00FFAB 0%, #00FFD1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .border-gradient {
+    border-image: linear-gradient(135deg, #00FFAB, transparent) 1;
+  }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}

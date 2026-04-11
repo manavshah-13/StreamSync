@@ -1,0 +1,138 @@
+import axios from 'axios'
+
+// ─── Axios Instance ───────────────────────────────────────────────────────────
+const api = axios.create({
+  baseURL: '/api',
+  timeout: 4000,
+  headers: { 'Content-Type': 'application/json' },
+})
+
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    // Suppress console noise for expected proxy failures (no backend)
+    if (err.code !== 'ERR_NETWORK' && err.response?.status !== 502) {
+      console.warn('[StreamSync API]', err.message)
+    }
+    return Promise.reject(err)
+  }
+)
+
+// ─── Mock Data ────────────────────────────────────────────────────────────────
+const CATEGORIES = ['Electronics', 'Apparel', 'Home', 'Sports', 'Beauty', 'Toys']
+const NAMES = [
+  'Pro Wireless Headphones', 'Smart 4K Monitor', 'Ergonomic Keyboard',
+  'Running Shoes Elite', 'Yoga Mat Premium', 'Coffee Maker Deluxe',
+  'Gaming Chair X500', 'LED Desk Lamp', 'Bluetooth Speaker',
+  'Mechanical Watch', 'Leather Backpack', 'Noise Cancelling Buds',
+  'Ultra-Wide Webcam', 'Standing Desk', 'Portable Charger 20K',
+  'Silk Pillowcase Set', 'Kitchen Scale Pro', 'Foam Roller Set',
+  'Smart Water Bottle', 'Resistance Bands Kit',
+]
+
+function mockProduct(i) {
+  const velocity = Math.floor(20 + Math.random() * 80)
+  return {
+    id: `prod-${i + 1}`,
+    name: NAMES[i % NAMES.length],
+    category: CATEGORIES[i % CATEGORIES.length],
+    price: parseFloat((19.99 + i * 12.5 + Math.random() * 30).toFixed(2)),
+    rating: parseFloat((3.5 + Math.random() * 1.5).toFixed(1)),
+    reviewCount: Math.floor(50 + Math.random() * 900),
+    demandVelocity: velocity,
+    brand: ['Sony', 'Samsung', 'Apple', 'Nike', 'Logitech', 'IKEA'][i % 6],
+    description: `High-quality ${NAMES[i % NAMES.length].toLowerCase()} engineered for peak performance and daily comfort. StreamSync dynamically adjusts its price based on real-time demand signals.`,
+    specs: {
+      'Weight': `${(0.3 + Math.random() * 2).toFixed(1)} kg`,
+      'Warranty': '2 years',
+      'Origin': 'Imported',
+    },
+    image: null,
+  }
+}
+
+const MOCK_PRODUCTS = Array.from({ length: 20 }, (_, i) => mockProduct(i))
+
+const MOCK_METRICS = {
+  p99Latency: 145,
+  activeSkus: '10.4M',
+  repricingRate: '42,100/s',
+  activeSessions: 18340,
+  cacheHitRate: 98.7,
+  streamLag: '12ms',
+}
+
+const MOCK_EVENTS = [
+  { id: 1, sku: 'SKU-88241', oldPrice: 49.99, newPrice: 54.99, reason: 'Demand spike +82%', ts: '21:59:01' },
+  { id: 2, sku: 'SKU-10453', oldPrice: 129.00, newPrice: 119.00, reason: 'Competitor drop',  ts: '21:58:47' },
+  { id: 3, sku: 'SKU-33891', oldPrice: 19.99, newPrice: 24.99, reason: 'Low inventory',     ts: '21:58:22' },
+  { id: 4, sku: 'SKU-72810', oldPrice: 89.99, newPrice: 84.99, reason: 'Session decay',     ts: '21:57:55' },
+  { id: 5, sku: 'SKU-55623', oldPrice: 34.99, newPrice: 39.99, reason: 'Demand spike +91%', ts: '21:57:31' },
+]
+
+const genDemandHistory = () =>
+  Array.from({ length: 20 }, (_, i) => ({
+    t: `${i * 30}s`,
+    velocity: Math.floor(30 + Math.random() * 60),
+    reprices: Math.floor(100 + Math.random() * 400),
+  }))
+
+// ─── Helper: try API, fallback to mock ───────────────────────────────────────
+async function tryOrMock(apiFn, mockValue) {
+  try {
+    return await apiFn()
+  } catch {
+    return mockValue
+  }
+}
+
+// ─── Products ────────────────────────────────────────────────────────────────
+export const fetchProducts = (params = {}) =>
+  tryOrMock(
+    () => api.get('/products', { params }).then(r => r.data),
+    { products: MOCK_PRODUCTS }
+  )
+
+export const fetchProductById = (id) =>
+  tryOrMock(
+    () => api.get(`/products/${id}`).then(r => r.data),
+    MOCK_PRODUCTS.find(p => p.id === id) ?? MOCK_PRODUCTS[0]
+  )
+
+// ─── Recommendations ─────────────────────────────────────────────────────────
+export const fetchRecommendations = (params = {}) =>
+  tryOrMock(
+    () => api.get('/recommendations', { params }).then(r => r.data),
+    { products: MOCK_PRODUCTS.slice(0, 4).map(p => ({ ...p, demandVelocity: 80 + Math.floor(Math.random() * 20) })) }
+  )
+
+// ─── Dashboard Metrics ────────────────────────────────────────────────────────
+export const fetchMetrics = () =>
+  tryOrMock(
+    () => api.get('/metrics').then(r => r.data),
+    MOCK_METRICS
+  )
+
+export const fetchDemandVelocity = () =>
+  tryOrMock(
+    () => api.get('/metrics/demand-velocity').then(r => r.data),
+    { history: genDemandHistory() }
+  )
+
+export const fetchRepricingEvents = () =>
+  tryOrMock(
+    () => api.get('/metrics/repricing-events').then(r => r.data),
+    { events: MOCK_EVENTS }
+  )
+
+// ─── Signal Capture (fire-and-forget — never throws) ─────────────────────────
+export const captureSignal = (payload) =>
+  api.post('/signals', payload).catch(() => {})  // silently ignore if backend is down
+
+export const captureView = (productId, sessionId) =>
+  captureSignal({ type: 'VIEW', productId, sessionId, ts: Date.now() })
+
+export const captureAddToCart = (productId, sessionId, qty = 1) =>
+  captureSignal({ type: 'ADD_TO_CART', productId, sessionId, qty, ts: Date.now() })
+
+export default api
