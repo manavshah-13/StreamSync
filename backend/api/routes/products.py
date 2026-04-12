@@ -1,4 +1,7 @@
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
+from db.database import get_db
+from models.schema import Product
 from db.redis_client import get_redis
 from engine.recommendation_engine  import get_recommendations
 from engine.personalisation_engine import rerank_by_session
@@ -12,32 +15,32 @@ async def get_products(
     sort: str = Query("demand_desc"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1),
-    redis=Depends(get_redis)
+    db: Session = Depends(get_db)
 ):
-    sku_keys = await redis.smembers("products:all")
-    products = []
-    for sku in sku_keys:
-        prod = await redis.hgetall(f"product:{sku}")
-        if prod:
-            # Filter by category if specified
-            if category and prod.get("category") != category:
-                continue
-
-            products.append({
-                "id":            prod.get("id"),
-                "name":          prod.get("name"),
-                "category":      prod.get("category"),
-                "price":         float(prod.get("current_price", 0)),
-                "rating":        float(prod.get("rating", 0)),
-                "reviewCount":   int(prod.get("reviewCount", 0)),
-                "demandVelocity": int(prod.get("demandVelocity", 50)),
-                "brand":         prod.get("brand"),
-                "image":         prod.get("image", None),
-                "color":         prod.get("color", ""),
-                "material":      prod.get("material", ""),
-                "style":         prod.get("style", ""),
-                "tags":          prod.get("tags", ""),
-            })
+    query = db.query(Product)
+    
+    if category:
+        query = query.filter(Product.category == category)
+    
+    # Sorting
+    if sort == "price_asc":
+        query = query.order_by(Product.current_price.asc())
+    elif sort == "price_desc":
+        query = query.order_by(Product.current_price.desc())
+    elif sort == "newest":
+        query = query.order_by(Product.created_at.desc())
+    else: # demand_desc
+        query = query.order_by(Product.demand_velocity.desc())
+        
+    total = query.count()
+    products = query.offset((page - 1) * limit).limit(limit).all()
+    
+    return {
+        "products": products,
+        "total": total,
+        "page": page,
+        "limit": limit
+    }
     
     # Sorting logic
     if sort == "price_asc":
@@ -63,31 +66,11 @@ async def get_products(
 
 
 @router.get("/products/{id}")
-async def get_product_by_id(id: str, redis=Depends(get_redis)):
-    prod = await redis.hgetall(f"product:{id}")
-    if not prod:
+async def get_product_by_id(id: str, db: Session = Depends(get_db)):
+    product = db.query(Product).filter(Product.id == id).first()
+    if not product:
         return {"error": "not found"}
-
-    import json
-    specs = json.loads(prod.get("specs", "{}"))
-
-    return {
-        "id":            prod.get("id"),
-        "name":          prod.get("name"),
-        "category":      prod.get("category"),
-        "price":         float(prod.get("current_price", 0)),
-        "rating":        float(prod.get("rating", 0)),
-        "reviewCount":   int(prod.get("reviewCount", 0)),
-        "demandVelocity": int(prod.get("demandVelocity", 50)),
-        "brand":         prod.get("brand"),
-        "description":   prod.get("description"),
-        "specs":         specs,
-        "image":         prod.get("image", None),
-        "color":         prod.get("color", ""),
-        "material":      prod.get("material", ""),
-        "style":         prod.get("style", ""),
-        "tags":          prod.get("tags", ""),
-    }
+    return product
 
 
 @router.get("/recommendations")

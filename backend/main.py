@@ -5,9 +5,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.middleware.monitor  import LatencyMonitorMiddleware
-from api.routes import products, analytics, pricing, ml_admin
+from api.routes import products, analytics, pricing, ml_admin, auth, admin_routes
 from api.routes import search, ml_insights
 from engine.latency_tracker import LatencyMiddleware
+from db.database import engine
+from models import schema
+
+# Create DB tables
+schema.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="StreamSync Backend")
 
@@ -29,6 +34,8 @@ app.include_router(pricing.router,     prefix="/api")
 app.include_router(ml_admin.router,    prefix="/api")
 app.include_router(search.router,      prefix="/api")
 app.include_router(ml_insights.router, prefix="/api")
+app.include_router(auth.router,        prefix="/api")
+app.include_router(admin_routes.router, prefix="/api")
 
 @app.get("/")
 def read_root():

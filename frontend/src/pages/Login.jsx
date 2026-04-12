@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 const AppInput = (props) => {
   const { label, placeholder, icon, ...rest } = props;
@@ -39,6 +40,13 @@ const AppInput = (props) => {
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
+  const { login, signup } = useAuth();
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Mouse tracking state for the background blur effect under the forms
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -49,10 +57,43 @@ export default function Login() {
     setMousePosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
-  const handleAuthSubmit = (e) => {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const handleAuthSubmit = async (e) => {
     e.preventDefault();
-    localStorage.setItem('user', 'alex_stream');
-    navigate('/');
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      if (isSignUp) {
+        const result = await signup(email, fullName, password, isAdmin);
+        if (result.success) {
+          setIsSignUp(false);
+          setError('Account created! Please sign in.');
+          setEmail('');
+          setPassword('');
+          setFullName('');
+        } else {
+          setError(result.message || 'Signup failed. Please check your details.');
+        }
+      } else {
+        const result = await login(email, password);
+        if (result.success) {
+          if (result.user && result.user.is_admin) {
+            navigate('/admin');
+          } else {
+            navigate('/');
+          }
+        } else {
+          setError(result.message || 'Login failed. Invalid credentials.');
+        }
+      }
+    } catch (err) {
+      console.error('Auth error:', err);
+      setError('Connection error: Is the backend server running?');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const socialIcons = [
@@ -95,9 +136,23 @@ export default function Login() {
             <span className='text-sm text-[var(--color-text-secondary)] font-medium mb-6'>or use your email account</span>
             
             <div className='flex flex-col gap-4 items-center'>
-              <AppInput placeholder="Email" type="email" required />
-              <AppInput placeholder="Password" type="password" required />
+              <AppInput 
+                placeholder="Email" 
+                type="email" 
+                required 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <AppInput 
+                placeholder="Password" 
+                type="password" 
+                required 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
+            
+            {error && !isSignUp && <p className="text-red-500 text-sm mt-4 font-medium">{error}</p>}
             
             <div className="flex flex-col gap-2 mt-6">
               <a href="#" className='font-medium text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors'>Forgot your password?</a>
@@ -110,8 +165,12 @@ export default function Login() {
               </button>
             </div>
             
-            <button type="submit" className="mt-8 relative inline-flex self-center justify-center items-center overflow-hidden rounded-xl bg-[#1A2E1A] px-12 py-3.5 font-bold text-white transition-all duration-300 hover:scale-[1.02] hover:bg-black shadow-lg shadow-black/10">
-              Sign In
+            <button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="mt-8 relative inline-flex self-center justify-center items-center overflow-hidden rounded-xl bg-[#1A2E1A] px-12 py-3.5 font-bold text-white transition-all duration-300 hover:scale-[1.02] hover:bg-black shadow-lg shadow-black/10 disabled:opacity-50"
+            >
+              {isSubmitting ? 'Processing...' : 'Sign In'}
             </button>
           </form>
         </div>
@@ -136,10 +195,42 @@ export default function Login() {
             <span className='text-sm text-[var(--color-text-secondary)] font-medium mb-6'>or use your email for registration</span>
             
             <div className='flex flex-col gap-4 items-center'>
-              <AppInput placeholder="Full Name" type="text" required />
-              <AppInput placeholder="Email" type="email" required />
-              <AppInput placeholder="Password" type="password" required />
+              <AppInput 
+                placeholder="Full Name" 
+                type="text" 
+                required 
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
+              <AppInput 
+                placeholder="Email" 
+                type="email" 
+                required 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <AppInput 
+                placeholder="Password" 
+                type="password" 
+                required 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              
+              <div 
+                className="flex items-center gap-2 mt-2 self-start px-1 cursor-pointer group" 
+                onClick={() => setIsAdmin(!isAdmin)}
+              >
+                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isAdmin ? 'bg-[#16A34A] border-[#16A34A]' : 'border-[var(--color-border)] group-hover:border-[#16A34A]'}`}>
+                  {isAdmin && <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>}
+                </div>
+                <span className="text-sm font-medium text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
+                  Register as Administrator
+                </span>
+              </div>
             </div>
+            
+            {error && isSignUp && <p className={error.includes('created') ? "text-[#16A34A] text-sm mt-4 font-medium" : "text-red-500 text-sm mt-4 font-medium"}>{error}</p>}
             
             <div className="flex flex-col gap-1 mt-6">
               <span className='font-medium text-sm text-[var(--color-text-secondary)] mt-2'>Already have an account?</span>
@@ -152,8 +243,12 @@ export default function Login() {
               </button>
             </div>
             
-            <button type="submit" className="mt-8 relative inline-flex self-center justify-center items-center overflow-hidden rounded-xl bg-[#1A2E1A] px-12 py-3.5 font-bold text-white transition-all duration-300 hover:scale-[1.02] hover:bg-black shadow-lg shadow-black/10">
-              Sign Up
+            <button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="mt-8 relative inline-flex self-center justify-center items-center overflow-hidden rounded-xl bg-[#1A2E1A] px-12 py-3.5 font-bold text-white transition-all duration-300 hover:scale-[1.02] hover:bg-black shadow-lg shadow-black/10 disabled:opacity-50"
+            >
+              {isSubmitting ? 'Processing...' : 'Sign Up'}
             </button>
           </form>
         </div>
