@@ -6,13 +6,20 @@ import Products from './pages/Products'
 import ProductDetails from './pages/ProductDetails'
 import Cart from './pages/Cart'
 import Dashboard from './pages/Dashboard'
+import Login from './pages/Login'
+
+const ProtectedRoute = () => {
+  const isAuth = !!localStorage.getItem('user');
+  return isAuth ? <Layout /> : <Navigate to="/login" replace />;
+};
 
 export default function App() {
   return (
     <CartProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Layout />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<ProtectedRoute />}>
             <Route index element={<Home />} />
             <Route path="products" element={<Products />} />
             <Route path="products/:id" element={<ProductDetails />} />

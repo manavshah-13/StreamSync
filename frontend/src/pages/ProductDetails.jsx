@@ -3,9 +3,8 @@ import { useParams, Link } from 'react-router-dom'
 import { ShoppingCart, Star, StarHalf, Monitor, Headphones, Laptop, Coffee } from 'lucide-react'
 import useCart from '../hooks/useCart'
 import { PageLoader, ErrorState } from '../components/Loader'
-import { fetchProductById, captureView, captureAddToCart } from '../services/api'
-
-const SESSION_ID = `sess_${Math.random().toString(36).slice(2, 10)}`
+import { fetchProductById, captureView, captureAddToCart, fetchRecommendations } from '../services/api'
+import { getSessionId } from '../utils/session'
 
 export default function ProductDetails() {
   const { id } = useParams()
@@ -14,8 +13,10 @@ export default function ProductDetails() {
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
   const [price, setPrice]     = useState(null)
+  const [recs, setRecs]       = useState([])
   const [qty, setQty]         = useState(1)
   const [added, setAdded]     = useState(false)
+  const sessionId = getSessionId()
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -24,16 +25,17 @@ export default function ProductDetails() {
       .then(p => {
         setProduct(p)
         setPrice(p.price)
-        captureView(id, SESSION_ID).catch(() => {})
+        captureView(id, sessionId).catch(() => {})
+        fetchRecommendations(id, sessionId).then(res => setRecs(res.products || []))
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
-  }, [id])
+  }, [id, sessionId])
 
   const handleAddToCart = () => {
     if (!product) return
     addToCart({ ...product, price }, qty)
-    captureAddToCart(id, SESSION_ID, qty).catch(() => {})
+    captureAddToCart(id, sessionId, qty).catch(() => {})
     setAdded(true)
     setTimeout(() => setAdded(false), 2000)
   }
@@ -254,21 +256,22 @@ export default function ProductDetails() {
              {/* Related */}
              <h3 className="text-xl font-bold mb-5 text-[#1A2E1A]">Related Products</h3>
              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-4 mb-10">
-                {[
-                  {n: 'Surface Pro AI', p: 14760},
-                  {n: 'Pro Wireless ANC', p: 14760},
-                  {n: 'Studio Laptop X1', p: 12300},
-                  {n: 'Studio Monitor X', p: 10660}
-                ].map((item, i) => (
-                  <div key={i} className="flex flex-col gap-1.5 relative group cursor-pointer">
-                    <div className="aspect-square bg-[#E4EDE4] rounded-xl border border-[#C8D9C8] flex items-center justify-center p-2 mb-1 group-hover:border-[#5A7A5A]/50 transition-colors">
-                      <img src={`https://picsum.photos/seed/${i+10}/80/80`} className="w-full h-full object-cover rounded-lg opacity-90 mix-blend-multiply" alt="rel" />
+                {recs.length > 0 ? recs.map((item, i) => (
+                  <Link key={item.id} to={`/products/${item.id}`} className="flex flex-col gap-1.5 relative group">
+                    <div className="aspect-square bg-[#E4EDE4] rounded-xl border border-[#C8D9C8] flex items-center justify-center p-2 mb-1 group-hover:border-[#2D6A2D]/40 transition-colors">
+                      {item.image ? (
+                         <img src={item.image} className="w-full h-full object-cover rounded-lg opacity-90 mix-blend-multiply" alt="rel" />
+                      ) : (
+                         <Monitor size={24} className="text-[#C8D9C8]" />
+                      )}
                     </div>
-                    <p className="text-[#5A7A5A] font-semibold text-xs leading-tight line-clamp-2 group-hover:text-[#1A2E1A]">{item.n}</p>
-                    <div className="flex items-center text-[#2D6A2D]"><Star size={10} className="fill-[#2D6A2D]" /><Star size={10} className="fill-[#2D6A2D]" /><Star size={10} className="fill-[#2D6A2D]" /><span className="text-[#5A7A5A] ml-1.5 font-bold text-[10px]">4</span></div>
-                    <p className="text-[#2D6A2D] font-black text-sm">₹{item.p.toLocaleString('en-IN')}</p>
-                  </div>
-                ))}
+                    <p className="text-[#5A7A5A] font-semibold text-xs leading-tight line-clamp-2 group-hover:text-[#1A2E1A]">{item.name}</p>
+                    <div className="flex items-center text-[#2D6A2D]"><Star size={10} className="fill-[#2D6A2D]" /><Star size={10} className="fill-[#2D6A2D]" /><Star size={10} className="fill-[#2D6A2D]" /><span className="text-[#5A7A5A] ml-1.5 font-bold text-[10px]">{item.rating || 4.5}</span></div>
+                    <p className="text-[#2D6A2D] font-black text-sm">₹{item.price.toLocaleString('en-IN')}</p>
+                  </Link>
+                )) : (
+                  <div className="col-span-4 text-center py-4 text-xs font-semibold text-slate-400">Loading AI recommendations...</div>
+                )}
              </div>
 
              {/* FBT */}

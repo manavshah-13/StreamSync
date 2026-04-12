@@ -5,7 +5,7 @@ import {
   ResponsiveContainer, AreaChart, Area, ReferenceLine
 } from 'recharts'
 import { Activity, Zap, TrendingUp, AlertTriangle, Clock, RefreshCw, Database, Cpu } from 'lucide-react'
-import { fetchMetrics, fetchDemandVelocity, fetchRepricingEvents } from '../services/api'
+import { fetchMetrics, fetchDemandVelocity, fetchRepricingEvents, fetchMLInsights } from '../services/api'
 import { Spinner } from '../components/Loader'
 
 // ─── Mock data generators ─────────────────────────────────────────────────────
@@ -115,6 +115,7 @@ export default function Dashboard() {
   const [metrics, setMetrics]       = useState(MOCK_METRICS)
   const [demandData, setDemand]     = useState(genDemandHistory)
   const [events, setEvents]         = useState(genRepricingEvents)
+  const [mlInsights, setMlInsights] = useState(null)
   const [loading, setLoading]       = useState(false)
   const [lastUpdate, setLastUpdate] = useState(new Date())
   const timerRef = useRef(null)
@@ -125,6 +126,7 @@ export default function Dashboard() {
       fetchMetrics().then(d => setMetrics(m => ({ ...m, ...d }))),
       fetchDemandVelocity().then(d => setDemand(d.history ?? genDemandHistory())),
       fetchRepricingEvents().then(d => setEvents(d.events ?? genRepricingEvents())),
+      fetchMLInsights().then(setMlInsights),
     ]).finally(() => { setLoading(false); setLastUpdate(new Date()) })
   }
 
@@ -245,6 +247,117 @@ export default function Dashboard() {
               </motion.div>
             ))}
           </div>
+        </div>
+
+        {/* ── AI Engine Health & Ethics ─────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Revenue Uplift & Model Status */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+            style={panel}
+            className="p-6 space-y-5"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Cpu size={16} style={{ color: MINT }} />
+                <h2 className="font-bold text-base" style={{ color: '#1A1A1A' }}>ML Engine Status</h2>
+              </div>
+              <span className="text-[10px] font-mono text-slate-400">REAL-TIME WARM-UP</span>
+            </div>
+
+            {/* Model Pills */}
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(mlInsights?.model_status || {}).map(([name, status]) => (
+                <div key={name} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all"
+                  style={{
+                    background: status === 'warm' ? `${MINT}10` : 'rgba(0,0,0,0.03)',
+                    borderColor: status === 'warm' ? `${MINT}30` : 'rgba(0,0,0,0.08)',
+                    color: status === 'warm' ? MINT : 'rgba(0,0,0,0.4)'
+                  }}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${status === 'warm' ? 'animate-pulse' : ''}`}
+                    style={{ background: status === 'warm' ? MINT : 'rgba(0,0,0,0.2)' }} />
+                  {name.replace(/_/g, ' ').toUpperCase()}
+                </div>
+              ))}
+            </div>
+
+            {/* Top Uplift Products */}
+            <div className="pt-2 space-y-3">
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Top Revenue Gainers (AI Priced)</h3>
+              <div className="space-y-2">
+                {(mlInsights?.revenue_uplift?.top_products || []).slice(0, 3).map((p, i) => (
+                  <div key={p.product_id} className="flex items-center justify-between p-3 rounded-xl bg-white/40 border border-black/5">
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-bold text-slate-400">#{i+1}</span>
+                      <span className="text-xs font-semibold text-[#1A1A1A]">{p.product_id}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-[10px] text-slate-400">Uplift</p>
+                        <p className="text-xs font-bold text-green-600">${p.total_uplift.toFixed(0)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] text-slate-400">Events</p>
+                        <p className="text-xs font-bold text-slate-600">{p.event_count}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {(!mlInsights?.revenue_uplift?.top_products?.length) && (
+                  <div className="text-center py-4 text-[11px] text-slate-400 border border-dashed border-black/10 rounded-xl">
+                    Waiting for repricing events to compute uplift...
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Fairness & Ethics Audit */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+            style={panel}
+            className="p-6 space-y-5"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={16} style={{ color: AMBER }} />
+                <h2 className="font-bold text-base" style={{ color: '#1A1A1A' }}>Ethical Guardrails</h2>
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-[10px] font-black text-amber-600">
+                AUDIT SCORE: {mlInsights?.fairness_audit?.health_score || 100}%
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Recent Price Disparity Alerts</h3>
+              <div className="space-y-2 overflow-y-auto max-h-[180px] custom-scrollbar">
+                {(mlInsights?.fairness_audit?.recent_alerts || []).map((alert, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white/40 border border-black/5">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      alert.severity === 'HIGH' ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-500'
+                    }`}>
+                      <AlertTriangle size={14} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold text-[#1A1A1A] truncate">{alert.product_id}</p>
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${
+                          alert.severity === 'HIGH' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                        }`}>{alert.severity}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 truncate">{alert.type}: Price ratio {alert.ratio.toFixed(2)}x</p>
+                    </div>
+                  </div>
+                ))}
+                {(!mlInsights?.fairness_audit?.recent_alerts?.length) && (
+                  <div className="text-center py-8 text-[11px] text-slate-400 border border-dashed border-black/10 rounded-xl">
+                    <Activity size={24} className="mx-auto mb-2 opacity-20" />
+                    No active fairness violations detected.
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
         </div>
 
         {/* ── Demand Velocity Chart ──────────────────────────────────────────── */}

@@ -6,7 +6,8 @@ import {
   Headphones, Monitor, Laptop, Coffee,
   ChevronRight, ShoppingBag
 } from 'lucide-react'
-import { fetchProducts, fetchRecommendations } from '../services/api'
+import { fetchProducts, fetchRecommendations, captureView } from '../services/api'
+import { getSessionId } from '../utils/session'
 
 // ─── Static product data ──────────────────────────────────────────────────────
 const PRODUCTS = [
@@ -120,6 +121,26 @@ export default function Home() {
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
   const heroY      = useTransform(scrollYProgress, [0, 1], ['0%', '20%'])
   const heroOpacity= useTransform(scrollYProgress, [0, 0.7], [1, 0])
+  
+  const [trending, setTrending] = useState(PRODUCTS)
+  const [recs, setRecs] = useState([])
+  const sessionId = getSessionId()
+
+  useEffect(() => {
+    // Fetch all products to find highest demand for "Trending"
+    fetchProducts().then(res => {
+      const sorted = (res.products || []).sort((a,b) => b.demandVelocity - a.demandVelocity)
+      if (sorted.length > 0) setTrending(sorted.slice(0, 4))
+    })
+
+    // Fetch personalised recommendations for landing page (defaults to prod-1 context)
+    fetchRecommendations('prod-1', sessionId, 4).then(res => {
+      setRecs(res.products || [])
+    })
+
+    // Capture landing page hit
+    captureView('landing', sessionId).catch(() => {})
+  }, [sessionId])
 
   return (
     <div style={{ background: '#F2EBE3' }} className="text-[#1A1A1A] overflow-x-hidden">
@@ -143,14 +164,7 @@ export default function Home() {
         </motion.div>
 
         <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-8 pt-32 pb-20 text-center space-y-10">
-          {/* Live chip */}
-          <motion.div initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full"
-            style={{ border: '1px solid rgba(22,163,74,0.4)', background: 'rgba(22,163,74,0.12)' }}>
-            <motion.span animate={{ scale: [1, 1.5, 1], opacity: [1, 0.4, 1] }} transition={{ duration: 2, repeat: Infinity }}
-              className="w-1.5 h-1.5 rounded-full bg-mint" />
-            <span style={{ color: '#0A7A3E' }} className="text-xs font-bold tracking-wider">AI PRICING ENGINE ACTIVE</span>
-          </motion.div>
+
 
           {/* Headline — fashion editorial scale */}
           <motion.div initial={{ opacity: 0, y: 36 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.1 }}>
@@ -169,8 +183,8 @@ export default function Home() {
           {/* Sub */}
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }}
             className="text-lg sm:text-xl max-w-xl mx-auto leading-relaxed font-light" style={{ color: '#5C5048' }}>
-            Experience a curated shopping environment where every price is optimised in real-time.{' '}
-            <span style={{ color: '#2A2018' }} className="font-semibold">10M+ SKUs repriced every 200ms.</span>
+            StreamSync: Markets Move Fast.{' '}
+            <span style={{ color: '#2A2018' }} className="font-semibold">We Move Faster.</span>
           </motion.p>
 
           {/* CTAs */}
@@ -192,33 +206,7 @@ export default function Home() {
             </Link>
           </motion.div>
 
-          {/* Metric pills */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-            className="flex flex-wrap gap-2.5 justify-center pt-2">
-            {[
-              ['10M+ active SKUs', '#16A34A', 'rgba(22,163,74,0.1)', 'rgba(22,163,74,0.3)'],
-              ['< 200ms repricing', '#16A34A', 'rgba(22,163,74,0.1)', 'rgba(22,163,74,0.3)'],
-              ['99.97% uptime', '#16A34A', 'rgba(22,163,74,0.1)', 'rgba(22,163,74,0.3)'],
-              ['42K prices/sec', '#C97A2A', 'rgba(201,122,42,0.1)', 'rgba(201,122,42,0.3)'],
-            ].map(([label, color, bg, border]) => (
-              <span key={label} className="text-xs font-semibold px-4 py-1.5 rounded-full tracking-wide"
-                style={{ color, border: `1px solid ${border}`, background: bg }}>
-                {label}
-              </span>
-            ))}
-          </motion.div>
         </div>
-
-        {/* Scroll cue */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5">
-          <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 1.8, repeat: Infinity }}
-            className="w-5 h-8 rounded-full flex items-start justify-center pt-1.5"
-            style={{ border: '1px solid rgba(0,0,0,0.15)' }}>
-            <div className="w-0.5 h-2 rounded-full" style={{ background: '#16A34A' }} />
-          </motion.div>
-          <span className="text-2xs uppercase tracking-[0.2em]" style={{ color: 'rgba(0,0,0,0.25)' }}>Scroll</span>
-        </motion.div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════
@@ -240,7 +228,17 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {PRODUCTS.map((p, i) => <LuxProductCard key={p.id} product={p} index={i} />)}
+          {trending.map((p, i) => (
+            <LuxProductCard 
+              key={p.id} 
+              product={{
+                ...p,
+                tag: p.demandVelocity > 80 ? 'DEMAND SPIKE' : 'TRENDING',
+                demand: p.demandVelocity
+              }} 
+              index={i} 
+            />
+          ))}
         </div>
       </section>
 
@@ -255,7 +253,7 @@ export default function Home() {
             <p className="text-sm mt-1" style={{ color: 'rgba(0,0,0,0.4)' }}>Curated by real-time session intelligence</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {PRODUCTS.map((p, i) => {
+            {(recs.length > 0 ? recs : PRODUCTS).map((p, i) => {
               const icons = [Monitor, Headphones, Laptop, ShoppingBag]
               const Icon  = icons[i % icons.length]
               return (
@@ -267,19 +265,23 @@ export default function Home() {
                   className="group cursor-pointer"
                 >
                   <Link to={`/products/${p.id}`}>
-                    <div className="rounded-2xl p-5 flex flex-col gap-4 transition-all duration-300"
+                    <div className="rounded-2xl p-5 flex flex-col gap-4 transition-all duration-300 h-full"
                       style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
-                      <div className="aspect-square rounded-xl flex items-center justify-center"
+                      <div className="aspect-square rounded-xl flex items-center justify-center overflow-hidden relative"
                         style={{ background: 'rgba(0,0,0,0.04)' }}>
-                        <Icon size={40} style={{ color: 'rgba(0,0,0,0.2)' }} className="group-hover:text-[#0A7A3E] transition-colors duration-300" />
+                        {p.image ? (
+                          <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 mix-blend-multiply" />
+                        ) : (
+                          <Icon size={40} style={{ color: 'rgba(0,0,0,0.2)' }} className="group-hover:text-[#16A34A] transition-colors duration-300" />
+                        )}
                       </div>
-                      <div className="space-y-0.5">
-                        <p className="text-2xs uppercase tracking-widest" style={{ color: 'rgba(0,0,0,0.3)' }}>{p.cat}</p>
-                        <h4 className="font-bold text-sm line-clamp-1 transition-colors" style={{ color: '#2A2018' }}>{p.name}</h4>
+                      <div className="space-y-0.5 flex-1">
+                        <p className="text-2xs uppercase tracking-widest" style={{ color: '#8B7355' }}>{p.category || p.cat}</p>
+                        <h4 className="font-bold text-sm line-clamp-2 transition-colors" style={{ color: '#2A2018' }}>{p.name}</h4>
                       </div>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between mt-auto">
                         <span className="text-lg font-black font-mono" style={{ color: '#1A1A1A' }}>₹{p.price.toLocaleString('en-IN')}</span>
-                        <span className="text-xs font-bold rounded-xl px-3 py-1.5 transition-all" style={{ color: '#0A7A3E', border: '1px solid rgba(22,163,74,0.3)', background: 'rgba(22,163,74,0.08)' }}>View</span>
+                        <span className="text-xs font-bold rounded-xl px-3 py-1.5 transition-all" style={{ color: '#16A34A', border: '1px solid rgba(22,163,74,0.3)', background: 'rgba(22,163,74,0.08)' }}>View</span>
                       </div>
                     </div>
                   </Link>

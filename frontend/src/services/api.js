@@ -31,8 +31,11 @@ const NAMES = [
 ]
 
 const IMAGES = [
-  '/images/surface_pro.png', '/images/stream_buds.png', 
-  '/images/creator_laptop.png', '/images/artisan_desk.png'
+  '/images/surface_pro.png', '/images/stream_buds.png', '/images/creator_laptop.png', '/images/artisan_desk.png',
+  '/images/yoga_mat_premium.png', '/images/coffee_maker_deluxe.png', '/images/gaming_chair_x500.png', '/images/led_desk_lamp.png',
+  '/images/bluetooth_speaker.png', '/images/mechanical_watch.png', '/images/leather_backpack.png', '/images/noise_cancelling_buds.png',
+  '/images/ultra_wide_webcam.png', '/images/standing_desk.png', '/images/portable_charger_20k.png', '/images/silk_pillowcase_set.png',
+  '/images/kitchen_scale_pro.png', '/images/foam_roller_set.png', '/images/smart_water_bottle.png', '/images/resistance_bands_kit.png'
 ]
 const HARDCODED_PRICES = [106500, 14750, 151600, 28700]
 
@@ -53,7 +56,7 @@ function mockProduct(i) {
       'Warranty': '2 years',
       'Origin': 'Imported',
     },
-    image: i < 4 ? IMAGES[i] : null,
+    image: IMAGES[i % IMAGES.length],
   }
 }
 
@@ -99,17 +102,40 @@ export const fetchProducts = (params = {}) =>
     { products: MOCK_PRODUCTS }
   )
 
+// ─── Semantic Search ─────────────────────────────────────────────────────────
+export const searchProducts = (q, limit = 10) =>
+  tryOrMock(
+    () => api.get('/search', { params: { q, limit } }).then(r => r.data),
+    // Client-side fallback: simple name/tag substring filter
+    (() => {
+      const terms = q.toLowerCase().split(' ')
+      const filtered = MOCK_PRODUCTS.filter(p =>
+        terms.some(t =>
+          p.name.toLowerCase().includes(t) ||
+          (p.tags || '').toLowerCase().includes(t) ||
+          p.category.toLowerCase().includes(t)
+        )
+      ).map(p => ({ ...p, matchScore: 1.0 }))
+      return {
+        products: filtered.length > 0 ? filtered : MOCK_PRODUCTS.slice(0, limit),
+        query_parsed: { keywords: terms },
+        total: filtered.length,
+        status: 'mock',
+      }
+    })()
+  )
+
 export const fetchProductById = (id) =>
   tryOrMock(
     () => api.get(`/products/${id}`).then(r => r.data),
     MOCK_PRODUCTS.find(p => p.id === id) ?? MOCK_PRODUCTS[0]
   )
 
-// ─── Recommendations ─────────────────────────────────────────────────────────
-export const fetchRecommendations = (params = {}) =>
+// Unified recommendation fetch with optional params
+export const fetchRecommendations = (productId = 'prod-1', sessionId = 'anon', limit = 4) =>
   tryOrMock(
-    () => api.get('/recommendations', { params }).then(r => r.data),
-    { products: MOCK_PRODUCTS.slice(0, 4).map(p => ({ ...p, demandVelocity: 80 + Math.floor(Math.random() * 20) })) }
+    () => api.get(`/recommendations`, { params: { product_id: productId, session_id: sessionId, limit } }).then(r => r.data),
+    { products: MOCK_PRODUCTS.slice(0, limit) }
   )
 
 // ─── Dashboard Metrics ────────────────────────────────────────────────────────
@@ -129,6 +155,18 @@ export const fetchRepricingEvents = () =>
   tryOrMock(
     () => api.get('/metrics/repricing-events').then(r => r.data),
     { events: MOCK_EVENTS }
+  )
+
+export const fetchMLInsights = () =>
+  tryOrMock(
+    () => api.get('/ml/insights').then(r => r.data),
+    {
+      revenue_uplift: { top_products: [] },
+      fairness_audit: { total_alerts: 0, health_score: 100, recent_alerts: [] },
+      latency: { overall_p99_ms: 0, by_route: {} },
+      model_status: {},
+      semantic_search: { status: 'cold' }
+    }
   )
 
 // ─── Signal Capture (fire-and-forget — never throws) ─────────────────────────

@@ -12,6 +12,16 @@
     --accent-glow: #00FFD1;
     --warn-amber: #FFB800;
     --warn-red: #FF4545;
+
+    /* Custom Light Theme Variables for Authentication View */
+    --color-bg: #F8FAF7;
+    --color-surface: #FFFFFF;
+    --color-muted-surface: #F0F4F0;
+    --color-border: #C8D9C8;
+    --color-text-secondary: #5A7A5A;
+    --color-text-primary: #1A2E1A;
+    --color-heading: #0F1A0F;
+    --color-bg-2: #E4EDE4;
   }
 
   * {
