@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.middleware.monitor  import LatencyMonitorMiddleware
 from api.routes import products, analytics, pricing, ml_admin, auth, admin_routes
 from api.routes import search, ml_insights, events
+from app.api.v1.endpoints import recommendations
 from engine.latency_tracker import LatencyMiddleware
 from db.database import engine
 from models import schema
@@ -56,6 +57,7 @@ app.include_router(ml_insights.router, prefix="/api")
 app.include_router(auth.router,        prefix="/api")
 app.include_router(admin_routes.router, prefix="/api")
 app.include_router(events.router,     prefix="/api/v1")
+app.include_router(recommendations.router, prefix="/api/v1")
 
 @app.get("/")
 def read_root():
