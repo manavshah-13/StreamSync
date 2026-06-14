@@ -21,6 +21,13 @@ async def lifespan(fastapi_app):
     print("[INIT] Loading In-Memory FakeRedis Backend")
     generate_mock_products()
 
+    print("[INIT] Triggering Background Catalog Embedding Sync...")
+    try:
+        from app.core.lifecycle import register_startup_sync
+        register_startup_sync(fastapi_app)
+    except Exception as e:
+        print(f"[ERROR] Failed to start catalog embedding sync: {e}")
+
     print("[INIT] Building Semantic Search Index…")
     redis_sync = get_redis_sync()
     semantic_engine.build_index_from_redis_sync(redis_sync)

@@ -1,3 +1,4 @@
+import asyncio
 import re
 import logging
 from app.ml.embedder import ProductEmbedder
@@ -35,7 +36,8 @@ async def generate_catalog_embeddings(db_session) -> list[dict[str, list[float]]
         logger.error(f"Failed to query products from database: {e}")
         return []
         
-    embedder = ProductEmbedder()
+    # Instantiate ProductEmbedder on a separate thread to prevent event loop blocking
+    embedder = await asyncio.to_thread(ProductEmbedder)
     results = []
     
     for product in products:
@@ -50,9 +52,11 @@ async def generate_catalog_embeddings(db_session) -> list[dict[str, list[float]]
         )
         
         try:
-            embedding = embedder.get_embedding(text_blob)
+            # Perform inference on a separate thread to keep API gateway responsive
+            embedding = await asyncio.to_thread(embedder.get_embedding, text_blob)
             results.append({product.id: embedding})
         except Exception as e:
             logger.error(f"Failed to generate embedding for product {product.id}: {e}")
             
     return results
+
