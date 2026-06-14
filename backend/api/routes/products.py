@@ -66,11 +66,38 @@ async def get_products(
 
 
 @router.get("/products/{id}")
+@router.get("/v1/products/{id}")
 async def get_product_by_id(id: str, db: Session = Depends(get_db)):
     product = db.query(Product).filter(Product.id == id).first()
     if not product:
         return {"error": "not found"}
-    return product
+
+    # Calculate price change percentage
+    base = product.base_price or 0.0
+    current = product.current_price if product.current_price is not None else base
+    price_change_pct = ((current - base) / base * 100.0) if base > 0.0 else 0.0
+
+    return {
+        "id": product.id,
+        "name": product.name,
+        "category": product.category,
+        "base_price": product.base_price,
+        "original_price": product.base_price,
+        "current_price": current,
+        "price_change_percentage": round(price_change_pct, 2),
+        "rating": product.rating,
+        "review_count": product.review_count,
+        "demand_velocity": product.demand_velocity,
+        "brand": product.brand,
+        "description": product.description,
+        "specs": product.specs,
+        "image": product.image,
+        "color": product.color,
+        "material": product.material,
+        "style": product.style,
+        "tags": product.tags,
+        "created_at": product.created_at,
+    }
 
 
 @router.get("/recommendations")

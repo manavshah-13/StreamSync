@@ -2,19 +2,29 @@ import sys, os
 # Ensure backend/ is on the path regardless of working directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.middleware.monitor  import LatencyMonitorMiddleware
 from api.routes import products, analytics, pricing, ml_admin, auth, admin_routes
-from api.routes import search, ml_insights
+from api.routes import search, ml_insights, events
 from engine.latency_tracker import LatencyMiddleware
 from db.database import engine
 from models import schema
+from core.redis import redis_service
 
 # Create DB tables
 schema.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="StreamSync Backend")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Initialize Redis connection pool
+    await redis_service.init_pool()
+    yield
+    # Shutdown: Clean up Redis connection pool
+    await redis_service.close_pool()
+
+app = FastAPI(title="StreamSync Backend", lifespan=lifespan)
 
 # ── Middleware (outermost runs first) ─────────────────────────────────────────
 app.add_middleware(LatencyMiddleware)
@@ -36,6 +46,7 @@ app.include_router(search.router,      prefix="/api")
 app.include_router(ml_insights.router, prefix="/api")
 app.include_router(auth.router,        prefix="/api")
 app.include_router(admin_routes.router, prefix="/api")
+app.include_router(events.router,     prefix="/api/v1")
 
 @app.get("/")
 def read_root():

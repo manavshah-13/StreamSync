@@ -26,7 +26,12 @@ async def lifespan(fastapi_app):
     semantic_engine.build_index_from_redis_sync(redis_sync)
 
     print("[INIT] Starting AI Stream Consumer")
-    consumer_task = asyncio.create_task(run_consumer())
+    def start_consumer():
+        asyncio.set_event_loop(asyncio.new_event_loop())
+        asyncio.get_event_loop().run_until_complete(run_consumer())
+
+    consumer_thread = threading.Thread(target=start_consumer, daemon=True)
+    consumer_thread.start()
 
     print("[INIT] Starting Session-Aware Traffic Simulator")
     def start_producer():
@@ -37,8 +42,6 @@ async def lifespan(fastapi_app):
     producer_thread.start()
     print("====================================")
     yield
-
-    consumer_task.cancel()
 
 
 app.router.lifespan_context = lifespan

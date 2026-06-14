@@ -1,33 +1,95 @@
 version: '3.8'
 
 services:
-  redis:
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: streamsync_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret_vault_password_2026
+      POSTGRES_DB: streamsync_prod
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d streamsync_prod"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - streamsync_network
+
+  redis_cache_stream:
     image: redis:7-alpine
+    container_name: streamsync_redis
+    restart: always
+    command: redis-server --appendonly yes
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - streamsync_network
 
-  api:
+  backend_api:
     build:
       context: ./backend
+    container_name: streamsync_backend
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://admin:secret_vault_password_2026@postgres_db:5432/streamsync_prod
+      - REDIS_URL=redis://redis_cache_stream:6379
+      - SECRET_KEY=your-stunning-secret-key-123
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend:/app
-    environment:
-      - REDIS_URL=redis://redis:6379
-      - DATABASE_URL=sqlite:///./streamsync.db
-      - SECRET_KEY=your-stunning-secret-key-123
     depends_on:
-      - redis
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+      postgres_db:
+        condition: service_healthy
+      redis_cache_stream:
+        condition: service_healthy
+    networks:
+      - streamsync_network
 
-  data_producer:
+  pricing_daemon_worker:
     build:
       context: ./backend
-    volumes:
-      - ./backend:/app
+    container_name: streamsync_pricing_worker
+    restart: always
+    command: python -m app.workers.pricing_daemon
     environment:
-      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql+asyncpg://admin:secret_vault_password_2026@postgres_db:5432/streamsync_prod
+      - REDIS_URL=redis://redis_cache_stream:6379
+      - SECRET_KEY=your-stunning-secret-key-123
     depends_on:
-      - redis
-    command: python workers/data_producer.py
+      postgres_db:
+        condition: service_healthy
+      redis_cache_stream:
+        condition: service_healthy
+    networks:
+      - streamsync_network
+
+  frontend_app:
+    build:
+      context: ./frontend
+    container_name: streamsync_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend_api
+    networks:
+      - streamsync_network
+
+volumes:
+  postgres_data:
+
+networks:
+  streamsync_network:
+    driver: bridge
