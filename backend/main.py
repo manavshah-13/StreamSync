@@ -20,6 +20,15 @@ schema.Base.metadata.create_all(bind=engine)
 async def lifespan(app: FastAPI):
     # Startup: Initialize Redis connection pool
     await redis_service.init_pool()
+    # Trigger background startup synchronization of product embeddings cache
+    try:
+        from app.core.lifecycle import register_startup_sync
+        register_startup_sync(app)
+    except Exception as e:
+        import logging
+        logging.getLogger("main").warning(
+            f"Failed to register startup sync task: {e}. Gateway starting in fallback mode."
+        )
     yield
     # Shutdown: Clean up Redis connection pool
     await redis_service.close_pool()
