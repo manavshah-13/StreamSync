@@ -161,9 +161,9 @@ async def test_pers():
 
     # ADD_TO_CART weight test
     # CATEGORIES = [Electronics, Apparel, Home, Sports, Beauty, Toys]
-    # prod-4 = index 3 = Sports,  prod-1 = index 0 = Electronics
+    # prod-31 = index 30 = Sports,  prod-1 = index 0 = Electronics
     sid2 = "test_pers_cart_42"
-    await pers.update_session(r, sid2, "prod-4", "ADD_TO_CART")   # Sports += 3.0
+    await pers.update_session(r, sid2, "prod-31", "ADD_TO_CART")   # Sports += 3.0
     await pers.update_session(r, sid2, "prod-1", "VIEW")           # Electronics += 1.0
     prof2 = await pers.get_session_profile(r, sid2)
     max_weight_cat = max(prof2, key=prof2.get) if prof2 else None

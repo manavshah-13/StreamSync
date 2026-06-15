@@ -6,7 +6,7 @@ import {
   Headphones, Monitor, Laptop, Coffee,
   ChevronRight, ShoppingBag
 } from 'lucide-react'
-import { fetchProducts, fetchRecommendations, captureView } from '../services/api'
+import { fetchProducts, fetchRecommendations, fetchPersonalizedRecommendations, captureView } from '../services/api'
 import { getSessionId } from '../utils/session'
 
 // ─── Static product data ──────────────────────────────────────────────────────
@@ -98,7 +98,7 @@ function LuxProductCard({ product, index }) {
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <span className="text-xl font-black font-mono text-[#1A1A1A]">₹{product.price.toLocaleString('en-IN')}</span>
+              <span className="text-xl font-black font-mono text-[#1A1A1A]">₹{(product.price ?? 0).toLocaleString('en-IN')}</span>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
                 style={{ background: '#0D0D0D', border: '1px solid rgba(22,163,74,0.25)' }}>
                 <motion.span
@@ -129,17 +129,38 @@ export default function Home() {
   useEffect(() => {
     // Fetch all products to find highest demand for "Trending"
     fetchProducts().then(res => {
-      const sorted = (res.products || []).sort((a,b) => b.demandVelocity - a.demandVelocity)
+      const raw = res.products || res || []
+      // Normalize API shape: current_price → price, demand_velocity → demandVelocity
+      const normalized = raw.map(p => ({
+        ...p,
+        price: p.price ?? p.current_price ?? p.base_price ?? 0,
+        demandVelocity: p.demandVelocity ?? p.demand_velocity ?? 0,
+        cat: p.cat ?? p.category ?? 'General',
+      }))
+      const sorted = normalized.sort((a, b) => b.demandVelocity - a.demandVelocity)
       if (sorted.length > 0) setTrending(sorted.slice(0, 4))
-    })
+    }).catch(() => { /* keep static fallback */ })
 
-    // Fetch personalised recommendations for landing page (defaults to prod-1 context)
-    fetchRecommendations('prod-1', sessionId, 4).then(res => {
-      setRecs(res.products || [])
-    })
+    const storedUserId = localStorage.getItem('user_id')
+    const storedSessionId = localStorage.getItem('session_id') || sessionId
+
+    // Fetch personalised recommendations using newly captured preference tokens
+    fetchPersonalizedRecommendations({
+      session_id: storedSessionId,
+      user_id: storedUserId
+    }).then(res => {
+      const raw = res.products || []
+      // Normalize API shape for recs too
+      const normalized = raw.map(p => ({
+        ...p,
+        price: p.price ?? p.current_price ?? p.base_price ?? 0,
+        category: p.category ?? p.cat ?? 'General',
+      }))
+      setRecs(normalized)
+    }).catch(() => { /* keep static fallback */ })
 
     // Capture landing page hit
-    captureView('landing', sessionId).catch(() => {})
+    captureView('landing', storedSessionId).catch(() => {})
   }, [sessionId])
 
   return (
@@ -280,7 +301,7 @@ export default function Home() {
                         <h4 className="font-bold text-sm line-clamp-2 transition-colors" style={{ color: '#2A2018' }}>{p.name}</h4>
                       </div>
                       <div className="flex items-center justify-between mt-auto">
-                        <span className="text-lg font-black font-mono" style={{ color: '#1A1A1A' }}>₹{p.price.toLocaleString('en-IN')}</span>
+                        <span className="text-lg font-black font-mono" style={{ color: '#1A1A1A' }}>₹{(p.price ?? p.current_price ?? 0).toLocaleString('en-IN')}</span>
                         <span className="text-xs font-bold rounded-xl px-3 py-1.5 transition-all" style={{ color: '#16A34A', border: '1px solid rgba(22,163,74,0.3)', background: 'rgba(22,163,74,0.08)' }}>View</span>
                       </div>
                     </div>

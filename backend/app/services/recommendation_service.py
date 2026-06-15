@@ -49,15 +49,18 @@ async def compute_active_session_vector(session_id: str, db_session) -> List[flo
         try:
             product = db_session.query(Product).filter(Product.id == sku).first()
             if product:
-                # Reconstruct text blob and compute embedding dynamically
-                text_blob = build_product_text_blob(
-                    name=product.name,
-                    category=product.category,
-                    description=product.description
-                )
-                if not embedder:
-                    embedder = ProductEmbedder()
-                vector = embedder.get_embedding(text_blob)
+                if product.embedding is not None and len(product.embedding) == 384:
+                    vector = product.embedding
+                else:
+                    # Reconstruct text blob and compute embedding dynamically
+                    text_blob = build_product_text_blob(
+                        name=product.name,
+                        category=product.category,
+                        description=product.description
+                    )
+                    if not embedder:
+                        embedder = ProductEmbedder()
+                    vector = embedder.get_embedding(text_blob)
                 
                 # Cache it to prevent redundant DB calls or ML inference
                 PRODUCT_EMBEDDING_CACHE[sku] = vector

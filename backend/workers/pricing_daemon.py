@@ -10,7 +10,7 @@ import redis.asyncio as aioredis
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db.session import async_session_maker
-from models.schema import Product, PricingHistory
+from models.schema import Product, PricingHistory, FairnessLog
 from analytics.velocity import DemandVelocityAnalyzer
 from pricing.engine import calculate_dynamic_sku_price
 from pricing.explainer import generate_price_change_reason
@@ -61,12 +61,35 @@ async def run_pricing_sweep(redis_client: Optional[aioredis.Redis] = None) -> No
                         current_price=old_price
                     )
 
+                    # 4. Check for active bias flags in fairness_logs for this product or segment
+                    bias_query = select(FairnessLog).where(
+                        FairnessLog.bias_detected == True
+                    ).order_by(FairnessLog.timestamp.desc()).limit(10)
+                    bias_result = await db.execute(bias_query)
+                    bias_logs = bias_result.scalars().all()
+                    
+                    product_has_bias = False
+                    for log in bias_logs:
+                        if hasattr(log, "metric_scanned"):
+                            if (log.metric_scanned == f"pricing_parity:{product.id}") or \
+                               (log.metric_scanned == "Dynamic Pricing Disparity" and f"Product {product.id}" in (log.operational_fix or "")):
+                                product_has_bias = True
+                                break
+
+                    clamped_by_fairness = False
+                    if product_has_bias and new_price != base_price:
+                        new_price = base_price
+                        clamped_by_fairness = True
+
                     if new_price != product.current_price:
                         # Update product
                         product.current_price = new_price
 
-                        # Generate structured reason using explainer service
-                        reason = generate_price_change_reason(old_price, new_price, velocity, stock_count)
+                        if clamped_by_fairness:
+                            reason = "Price adjustment clamped by AI Fairness Scanner to prevent segment discrimination"
+                        else:
+                            # Generate structured reason using explainer service
+                            reason = generate_price_change_reason(old_price, new_price, velocity, stock_count)
 
                         history_entry = PricingHistory(
                             product_id=product.id,

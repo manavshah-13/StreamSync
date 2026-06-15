@@ -48,6 +48,16 @@ export default {
           amber: '#FFB800',
           red:   '#FF4545',
         },
+        // Premium Redesign exact colors
+        'bg-base': '#0B1020',
+        'card-layer': '#111827',
+        'primary-accent': '#6D5DFC',
+        'secondary-accent': '#22D3EE',
+        success: '#10B981',
+        warning: '#F59E0B',
+        danger: '#EF4444',
+        'text-base': '#F9FAFB',
+        'muted-text': '#9CA3AF',
       },
       fontFamily: {
         sans:     ['Inter', 'system-ui', 'sans-serif'],

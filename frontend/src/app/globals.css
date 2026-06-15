@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #0B1020;
+    color: #F9FAFB;
+  }
+}
+
+@layer utilities {
+  .soft-shadows {
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+  .glass-card {
+    @apply backdrop-blur-md bg-[#111827]/70 border border-white/10 soft-shadows;
+  }
+}

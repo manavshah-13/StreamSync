@@ -95,17 +95,42 @@ async function tryOrMock(apiFn, mockValue) {
   }
 }
 
+// ─── Normalize product shape from API ────────────────────────────────────────
+// Backend uses current_price / demand_velocity; components expect price / demandVelocity
+function normalizeProduct(p) {
+  return {
+    ...p,
+    price:          p.price          ?? p.current_price  ?? p.base_price ?? 0,
+    original_price: p.original_price ?? p.base_price     ?? p.price      ?? 0,
+    demandVelocity: p.demandVelocity ?? p.demand_velocity ?? 0,
+    category:       p.category       ?? p.cat             ?? 'General',
+    cat:            p.cat            ?? p.category        ?? 'General',
+    image:          p.image          ?? null,
+    rating:         p.rating         ?? null,
+    reviewCount:    p.reviewCount    ?? p.review_count    ?? 0,
+    description:    p.description    ?? '',
+  }
+}
+
+function normalizeProductList(data) {
+  if (Array.isArray(data)) return data.map(normalizeProduct)
+  if (data && Array.isArray(data.products)) {
+    return { ...data, products: data.products.map(normalizeProduct) }
+  }
+  return data
+}
+
 // ─── Products ────────────────────────────────────────────────────────────────
 export const fetchProducts = (params = {}) =>
   tryOrMock(
-    () => api.get('/products', { params }).then(r => r.data),
+    () => api.get('/products', { params }).then(r => normalizeProductList(r.data)),
     { products: MOCK_PRODUCTS }
   )
 
 // ─── Semantic Search ─────────────────────────────────────────────────────────
 export const searchProducts = (q, limit = 10) =>
   tryOrMock(
-    () => api.get('/search', { params: { q, limit } }).then(r => r.data),
+    () => api.get('/search', { params: { q, limit } }).then(r => normalizeProductList(r.data)),
     // Client-side fallback: simple name/tag substring filter
     (() => {
       const terms = q.toLowerCase().split(' ')
@@ -127,15 +152,21 @@ export const searchProducts = (q, limit = 10) =>
 
 export const fetchProductById = (id) =>
   tryOrMock(
-    () => api.get(`/products/${id}`).then(r => r.data),
+    () => api.get(`/products/${id}`).then(r => normalizeProduct(r.data)),
     MOCK_PRODUCTS.find(p => p.id === id) ?? MOCK_PRODUCTS[0]
   )
 
 // Unified recommendation fetch with optional params
 export const fetchRecommendations = (productId = 'prod-1', sessionId = 'anon', limit = 4) =>
   tryOrMock(
-    () => api.get(`/recommendations`, { params: { product_id: productId, session_id: sessionId, limit } }).then(r => r.data),
+    () => api.get(`/recommendations`, { params: { product_id: productId, session_id: sessionId, limit } }).then(r => normalizeProductList(r.data)),
     { products: MOCK_PRODUCTS.slice(0, limit) }
+  )
+
+export const fetchPersonalizedRecommendations = (params = {}) =>
+  tryOrMock(
+    () => api.get('/v1/recommendations/personalized', { params }).then(r => normalizeProductList(r.data)),
+    { products: MOCK_PRODUCTS.slice(0, 5), recommender: 'global_trending' }
   )
 
 // ─── Dashboard Metrics ────────────────────────────────────────────────────────

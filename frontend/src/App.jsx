@@ -8,6 +8,7 @@ import Cart from './pages/Cart'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import AdminPanel from './pages/AdminPanel'
+import Onboarding from './pages/Onboarding'
 
 const ProtectedRoute = () => {
   const isAuth = !!localStorage.getItem('token');
@@ -26,6 +27,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/admin" element={<AdminRoute />} />
           <Route path="/" element={<ProtectedRoute />}>
             <Route index element={<Home />} />

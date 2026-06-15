@@ -44,6 +44,11 @@ async def generate_catalog_embeddings(db_session) -> list[dict[str, list[float]]
         if not product or not product.id:
             continue
             
+        # Check if pre-computed embedding exists in DB
+        if product.embedding is not None and len(product.embedding) == 384:
+            results.append({product.id: product.embedding})
+            continue
+
         # Extract fields and pass to build_product_text_blob
         text_blob = build_product_text_blob(
             name=product.name,

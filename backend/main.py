@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.middleware.monitor  import LatencyMonitorMiddleware
 from api.routes import products, analytics, pricing, ml_admin, auth, admin_routes
 from api.routes import search, ml_insights, events
-from app.api.v1.endpoints import recommendations
+from app.api.v1.endpoints import recommendations, experiments, users, analytics as analytics_v1
 from engine.latency_tracker import LatencyMiddleware
 from db.database import engine
 from models import schema
@@ -41,9 +41,14 @@ app.add_middleware(LatencyMiddleware)
 app.add_middleware(LatencyMonitorMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5175",
+        "http://127.0.0.1:5175"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -58,7 +63,14 @@ app.include_router(auth.router,        prefix="/api")
 app.include_router(admin_routes.router, prefix="/api")
 app.include_router(events.router,     prefix="/api/v1")
 app.include_router(recommendations.router, prefix="/api/v1")
+app.include_router(experiments.router, prefix="/api/v1")
+app.include_router(users.router, prefix="/api/v1")
+app.include_router(analytics_v1.router, prefix="/api/v1")
 
 @app.get("/")
 def read_root():
     return {"status": "ok", "message": "StreamSync Backend is alive!"}
+
+@app.get("/api/v1/health")
+def read_health():
+    return {"status": "healthy", "service": "StreamSync Gateway"}

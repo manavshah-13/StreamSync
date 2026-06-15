@@ -33,8 +33,8 @@
   }
 
   body {
-    background-color: #F8FAF7;
-    color: #1A1A1A;
+    background-color: #0B1020;
+    color: #F9FAFB;
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -135,4 +135,12 @@
 
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .soft-shadows {
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+
+  .glass-card {
+    @apply backdrop-blur-md bg-[#111827]/70 border border-white/10 soft-shadows;
+  }
 }

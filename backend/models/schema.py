@@ -39,6 +39,10 @@ class Product(Base):
     material: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     style: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     tags: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    embedding: Mapped[Optional[List[float]]] = mapped_column(JSON, nullable=True)
+    is_active: Mapped[Optional[bool]] = mapped_column(Boolean, default=True, nullable=True)
+    is_trending: Mapped[Optional[bool]] = mapped_column(Boolean, default=False, nullable=True)
+    stock_count: Mapped[Optional[int]] = mapped_column(Integer, default=50, nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
